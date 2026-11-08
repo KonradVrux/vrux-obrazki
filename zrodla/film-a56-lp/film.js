@@ -15,6 +15,7 @@ export async function init(W = 1920, H = 1080) {
   const S = createStudio(canvas, W, H);
   const { scene, camera, pt } = S;
   let current = []; // objects added by the active shot
+  const state = { log: [] };
 
   function setCam(az, el, dist, tx, ty, tz) {
     const a = az * D2R, e = el * D2R;
@@ -94,11 +95,13 @@ export async function init(W = 1920, H = 1080) {
     const dirty = sh.update(t);
     if (dirty || needScene) { pt.setScene(scene, camera); needScene = false; } else pt.updateCamera();
     pt.reset();
-    let guard = 0;
-    while (pt.samples < spp && guard++ < spp * 8 + 50) {
-      pt.renderSample();
+    let guard = 0; const tStart = performance.now();
+    while (pt.samples < spp && performance.now() - tStart < 180000) {
+      if (pt.isCompiling) { await new Promise(r => setTimeout(r, 25)); continue; }
+      pt.renderSample(); guard++;
       if (guard % 4 === 0) await new Promise(r => setTimeout(r, 0));
     }
+    state.lastSamples = pt.samples;
     const a = sh.anchors.call(sh), o = {};
     for (const k in a) { const v = a[k].clone().project(camera); o[k] = [Math.round((v.x * 0.5 + 0.5) * W), Math.round((-v.y * 0.5 + 0.5) * H)]; }
     return o;
@@ -119,7 +122,6 @@ export async function init(W = 1920, H = 1080) {
     const b = await new Promise(r => canvas.toBlob(r, 'image/jpeg', q)); return upload(b, filename, 'image/jpeg');
   }
 
-  const state = { log: [] };
   async function render(name, { fps = 30, spp = 48, bitrate = 28e6, from = 0, to = null, filename, onProgress } = {}) {
     use(name);
     const sh = shots[name]; const n = Math.round((to ?? sh.dur) * fps) - Math.round(from * fps);
