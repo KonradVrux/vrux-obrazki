@@ -124,7 +124,7 @@ function woodTex(size = 1024) {
 export function createStudio(canvas, W, H) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(1); renderer.setSize(W, H, false);
-  renderer.toneMapping = THREE.AgXToneMapping; renderer.toneMappingExposure = 1.0;
+  renderer.toneMapping = THREE.AgXToneMapping; renderer.toneMappingExposure = 1.2;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   const scene = new THREE.Scene();
@@ -138,6 +138,7 @@ export function createStudio(canvas, W, H) {
   const M = {
     plastic: new THREE.MeshPhysicalMaterial({ color: 0x121214, roughness: 0.46, metalness: 0, normalMap: noiseNormal(512, 10), normalScale: new THREE.Vector2(0.35, 0.35), specularIntensity: 0.6, side: THREE.DoubleSide }),
     plasticCut: new THREE.MeshPhysicalMaterial({ color: 0x4a4e55, roughness: 0.85, metalness: 0, side: THREE.DoubleSide }),
+    trayCut: new THREE.MeshPhysicalMaterial({ color: 0x62666e, roughness: 0.85, metalness: 0, side: THREE.DoubleSide }),
     rubber: new THREE.MeshPhysicalMaterial({ color: 0x080809, roughness: 0.82, metalness: 0, sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color(0x2a2c30), side: THREE.DoubleSide }),
     rubberCut: new THREE.MeshPhysicalMaterial({ color: 0x1d6f76, roughness: 0.9, metalness: 0, side: THREE.DoubleSide }),
     foam: new THREE.MeshPhysicalMaterial({ color: 0x1c1d20, roughness: 0.92, metalness: 0, normalMap: diamondNormal(512, 22), normalScale: new THREE.Vector2(1.2, 1.2), side: THREE.DoubleSide }),
@@ -173,7 +174,7 @@ export function createStudio(canvas, W, H) {
     const P = {};
     P.pad = add('pad', lathe(PAD, 128, phi0, phiL), M.foam, POS.pad, M.foam, caps(PAD));
     P.body = add('body', lathe(K, 180, phi0, phiL), M.plastic, POS.body, M.plasticCut, caps(K));
-    P.tray = add('tray', lathe(T, 180, phi0, phiL), M.plastic, POS.tray, M.plasticCut, caps(T));
+    P.tray = add('tray', lathe(T, 180, phi0, phiL), M.plastic, POS.tray, M.trayCut, caps(T).translate(-0.06, 0, 0));
     P.rubber = add('rubber', lathe(R, 160, phi0, phiL), M.rubber, POS.rubber, M.rubberCut, caps(R));
     P.screw = makeScrew(opts.screw || 'wood'); P.screw.position.y = POS.screw; g.add(P.screw);
     g.userData.parts = P; return g;

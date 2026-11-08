@@ -50,8 +50,8 @@ export async function init(W = 1920, H = 1080) {
         o.pad = new THREE.Vector3(22, P.pad.position.y + 1.5, 0); for (const q in o) o[q].y += this.f.position.y; return o; } },
     mount: { dur: 5.5, setup() {
         this.f = add(S.foot());
-        this.w = add(S.makeScrew('wood')); this.w.rotation.set(0, 0, Math.PI / 2); this.w.position.set(-8, S.POS.pad + 2.5, 62); this.w.rotation.y = 0.35;
-        this.m = add(S.makeScrew('metric')); this.m.rotation.set(0, 0, Math.PI / 2); this.m.position.set(24, S.POS.pad + 2.3, 70); this.m.rotation.y = -0.25;
+        this.w = add(S.makeScrew('wood')); this.w.rotation.set(0, 0.35, Math.PI / 2 + 0.17); this.w.position.set(-6, S.POS.pad + 4.6, 62);
+        this.m = add(S.makeScrew('metric')); this.m.rotation.set(0, -0.25, Math.PI / 2 + 0.2); this.m.position.set(26, S.POS.pad + 4.4, 70);
       },
       update(t) { const u = t / this.dur; setCam(lerp(6, -8, easeIO(u)), lerp(24, 19, u), lerp(205, 175, easeIO(u)), 4, 6, 30); return t === 0; },
       anchors() { return { wood: new THREE.Vector3(-14, S.POS.pad + 4, 64), metric: new THREE.Vector3(20, S.POS.pad + 4, 72) }; } },
@@ -147,4 +147,13 @@ export async function init(W = 1920, H = 1080) {
   }
 
   return { S, shots, use, frame, still, render, uploadStill, state, canvas };
+}
+
+export async function renderAll(F, list, opts) {
+  F.state.queue = list.slice(); F.state.err = null;
+  for (const n of list) {
+    try { await F.render(n, Object.assign({ filename: `tmp-a56lp-${n}-${Date.now() % 100000}.webm` }, opts)); }
+    catch (e) { F.state.err = n + ': ' + (e && e.stack || e); return; }
+  }
+  F.state.allDone = true;
 }
