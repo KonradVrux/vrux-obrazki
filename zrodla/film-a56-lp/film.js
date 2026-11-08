@@ -7,6 +7,8 @@ const ease = t => t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t);
 const easeIO = t => t < 0 ? 0 : t > 1 ? 1 : (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const lerp = (a, b, t) => a + (b - a) * t;
 const D2R = Math.PI / 180;
+const _mc = new MessageChannel(); const _q = []; _mc.port1.onmessage = () => { const f = _q.shift(); f && f(); };
+const yieldNow = () => new Promise(r => { _q.push(r); _mc.port2.postMessage(0); });
 
 export async function init(W = 1920, H = 1080) {
   const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
@@ -97,9 +99,9 @@ export async function init(W = 1920, H = 1080) {
     pt.reset();
     let guard = 0; const tStart = performance.now();
     while (pt.samples < spp && performance.now() - tStart < 180000) {
-      if (pt.isCompiling) { await new Promise(r => setTimeout(r, 25)); continue; }
+      if (pt.isCompiling) { await yieldNow(); continue; }
       pt.renderSample(); guard++;
-      if (guard % 4 === 0) await new Promise(r => setTimeout(r, 0));
+      if (guard % 8 === 0) await yieldNow();
     }
     state.lastSamples = pt.samples;
     const a = sh.anchors.call(sh), o = {};
