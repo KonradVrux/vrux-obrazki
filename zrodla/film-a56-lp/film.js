@@ -1,7 +1,7 @@
 // VRUX AVC A56 Low Profile – film timeline, frame loop, encoder, uploader
 import * as THREE from 'three';
 import { createStudio } from './lp.js';
-import { Muxer, ArrayBufferTarget } from 'webm-muxer';
+import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 
 const ease = t => t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t);
 const easeIO = t => t < 0 ? 0 : t > 1 ? 1 : (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -128,22 +128,23 @@ export async function init(W = 1920, H = 1080) {
     use(name);
     const sh = shots[name]; const n = Math.round((to ?? sh.dur) * fps) - Math.round(from * fps);
     const target = new ArrayBufferTarget();
-    const muxer = new Muxer({ target, video: { codec: 'V_VP9', width: W, height: H, frameRate: fps } });
+    const muxer = new Muxer({ target, video: { codec: 'avc', width: W, height: H, frameRate: fps }, fastStart: 'in-memory' });
     const enc = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: e => state.log.push('ENC ' + e) });
-    enc.configure({ codec: 'vp09.00.31.08', width: W, height: H, bitrate, framerate: fps, latencyMode: 'quality' });
+    enc.configure({ codec: 'avc1.640028', width: W, height: H, bitrate, framerate: fps, hardwareAcceleration: 'prefer-hardware', avc: { format: 'avc' } });
     const anchors = []; const t0 = performance.now();
     for (let i = 0; i < n; i++) {
       const t = from + i / fps;
-      anchors.push(await frame(name, t, spp));
+      const ta = performance.now(); anchors.push(await frame(name, t, spp)); const tb = performance.now();
       const vf = new VideoFrame(canvas, { timestamp: Math.round(i * 1e6 / fps), duration: Math.round(1e6 / fps) });
       enc.encode(vf, { keyFrame: i % 60 === 0 }); vf.close();
-      if (enc.encodeQueueSize > 4) await enc.flush();
+      if (enc.encodeQueueSize > 6) await enc.flush();
+      state.tm = { render: Math.round(tb - ta), enc: Math.round(performance.now() - tb) };
       state.progress = { name, i: i + 1, n, sec: Math.round((performance.now() - t0) / 1000) };
       if (onProgress) onProgress(state.progress);
     }
     await enc.flush(); muxer.finalize();
-    const blob = new Blob([target.buffer], { type: 'video/webm' });
-    const up = await upload(blob, filename || `tmp-a56lp-${name}.webm`, 'video/webm');
+    const blob = new Blob([target.buffer], { type: 'video/mp4' });
+    const up = await upload(blob, filename || `tmp-a56lp-${name}.mp4`, 'video/mp4');
     state.done = state.done || {}; state.done[name] = { up, anchors, sec: Math.round((performance.now() - t0) / 1000), bytes: blob.size };
     return state.done[name];
   }
@@ -154,7 +155,7 @@ export async function init(W = 1920, H = 1080) {
 export async function renderAll(F, list, opts) {
   F.state.queue = list.slice(); F.state.err = null;
   for (const n of list) {
-    try { await F.render(n, Object.assign({ filename: `tmp-a56lp-${n}-${Date.now() % 100000}.webm` }, opts)); }
+    try { await F.render(n, Object.assign({ filename: `tmp-a56lp-${n}-${Date.now() % 100000}.mp4` }, opts)); }
     catch (e) { F.state.err = n + ': ' + (e && e.stack || e); return; }
   }
   F.state.allDone = true;
