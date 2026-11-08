@@ -1,7 +1,7 @@
 // VRUX AVC A56 Low Profile – film timeline, frame loop, encoder, uploader
 import * as THREE from 'three';
 import { createStudio } from './lp.js';
-import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
+import { Muxer, ArrayBufferTarget } from "mp4-muxer";
 
 const ease = t => t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t);
 const easeIO = t => t < 0 ? 0 : t > 1 ? 1 : (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -10,11 +10,11 @@ const D2R = Math.PI / 180;
 const _mc = new MessageChannel(); const _q = []; _mc.port1.onmessage = () => { const f = _q.shift(); f && f(); };
 const yieldNow = () => new Promise(r => { _q.push(r); _mc.port2.postMessage(0); });
 
-export async function init(W = 1920, H = 1080) {
+export async function init(W = 1920, H = 1080, opt = {}) {
   const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
   canvas.style.cssText = 'position:fixed;inset:0;width:100vw;height:auto;z-index:99999;background:#000';
   document.body.appendChild(canvas);
-  const S = createStudio(canvas, W, H);
+  const S = createStudio(canvas, W, H, opt);
   const { scene, camera, pt } = S;
   let current = []; // objects added by the active shot
   const state = { log: [] };
@@ -25,9 +25,9 @@ export async function init(W = 1920, H = 1080) {
     camera.lookAt(tx, ty, tz); camera.updateMatrixWorld();
   }
   function clear() { current.forEach(o => scene.remove(o)); current = []; }
-  function add(o) { scene.add(o); current.push(o); return o; }
+  function add(o) { S.shadowAll(o); scene.add(o); current.push(o); return o; }
 
-  const EXP = { pad: -30, body: 0, screw: 8, rubber: 55, tray: 85 };
+  const EXP = { pad: -30, body: 0, tray: 30, screw: 50, rubber: 84 };
 
   const shots = {
     hero: { dur: 5.0, setup() { this.f = add(S.foot()); },
@@ -43,11 +43,11 @@ export async function init(W = 1920, H = 1080) {
           P[n].position.y = S.POS[n] + EXP[n] * kk;
         }
         this.f.position.y = 32 * k;
-        setCam(lerp(18, 40, t / this.dur), lerp(12, 15, t / this.dur), lerp(300, 440, k), 0, lerp(14, 62, k), 0);
+        setCam(lerp(18, 40, t / this.dur), lerp(12, 15, t / this.dur), lerp(300, 450, k), 0, lerp(14, 72, k), 0);
         return true;
       },
       anchors() { const P = this.f.userData.parts; const o = {};
-        o.tray = new THREE.Vector3(26, P.tray.position.y + 12, 0); o.rubber = new THREE.Vector3(14, P.rubber.position.y + 16, 0);
+        o.tray = new THREE.Vector3(26, P.tray.position.y + 9, 0); o.rubber = new THREE.Vector3(15, P.rubber.position.y + 10, 0);
         o.screw = new THREE.Vector3(3, P.screw.position.y + 14, 0); o.body = new THREE.Vector3(28, P.body.position.y + 10, 0);
         o.pad = new THREE.Vector3(22, P.pad.position.y + 1.5, 0); for (const q in o) o[q].y += this.f.position.y; return o; } },
     mount: { dur: 5.5, setup() {
@@ -59,9 +59,9 @@ export async function init(W = 1920, H = 1080) {
       anchors() { return { wood: new THREE.Vector3(-14, S.POS.pad + 4, 64), metric: new THREE.Vector3(20, S.POS.pad + 4, 72) }; } },
     section: { dur: 6.0, setup() { this.f = add(S.foot({ cut: true })); },
       update(t) { const u = t / this.dur; setCam(lerp(-72, -88, easeIO(u)), lerp(9, 5, u), lerp(150, 122, easeIO(u)), 0, 16, 0); return t === 0; },
-      anchors() { return { h0: new THREE.Vector3(0, 0, -30.5), h20: new THREE.Vector3(0, 20, -30.5), rubber: new THREE.Vector3(0, 21, -9), screw: new THREE.Vector3(0, 34, 0), thread: new THREE.Vector3(0, 12, -22.7), pad: new THREE.Vector3(0, -1, -16) }; } },
+      anchors() { return { h0: new THREE.Vector3(0, 0, -30.5), h20: new THREE.Vector3(0, 20, -30.5), rubber: new THREE.Vector3(0, 23, -14), screw: new THREE.Vector3(0, 34, 0), thread: new THREE.Vector3(0, 12, -22.7), pad: new THREE.Vector3(0, -1, -16) }; } },
     damping: { dur: 6.0, setup() {
-        this.f = add(S.foot()); this.p = add(S.plinth()); this.p.position.set(185, 24.1 + 23, -150);
+        this.f = add(S.foot()); this.p = add(S.plinth()); this.p.position.set(185, S.R_TOP_WORLD + 23, -150);
         this.rings = [];
       },
       update(t) {
@@ -95,6 +95,12 @@ export async function init(W = 1920, H = 1080) {
   async function frame(name, t, spp) {
     const sh = shots[name];
     const dirty = sh.update(t);
+    if (S.RASTER) {
+      S.composer.render(); state.lastSamples = 1;
+      const a = sh.anchors.call(sh), o = {};
+      for (const k in a) { const v = a[k].clone().project(camera); o[k] = [Math.round((v.x * 0.5 + 0.5) * W), Math.round((-v.y * 0.5 + 0.5) * H)]; }
+      return o;
+    }
     if (dirty || needScene) { pt.setScene(scene, camera); needScene = false; } else pt.updateCamera();
     pt.reset();
     let guard = 0; const tStart = performance.now();
@@ -111,7 +117,7 @@ export async function init(W = 1920, H = 1080) {
 
   async function still(name, t, spp = 32) {
     use(name); const t0 = performance.now(); const anc = await frame(name, t, spp);
-    return { ms: Math.round(performance.now() - t0), samples: pt.samples, anc };
+    return { ms: Math.round(performance.now() - t0), samples: pt ? pt.samples : 1, anc };
   }
 
   async function nonce() { return await fetch('/wp-admin/admin-ajax.php?action=rest-nonce', { credentials: 'include' }).then(r => r.text()); }

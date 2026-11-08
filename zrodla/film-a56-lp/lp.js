@@ -2,25 +2,28 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { WebGLPathTracer, GradientEquirectTexture } from 'three-gpu-pathtracer';
+import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 
 // ---------- profiles (r, z) in mm ----------
 const K = [[22.95,14.61],[23.08,14.87],[23.07,15.17],[22.89,15.47],[22.42,16.01],[22.34,16.28],[22.49,16.58],[22.97,17.13],[23.07,17.36],[23.09,17.58],[22.96,17.88],[22.4,18.55],[22.34,18.72],[22.4,18.95],[23.3,20.0],[26.5,20.0],[28.0,18.5],[28.0,1.5],[26.5,0.0],[22.5,0.0],[22.5,1.0],[11.5,1.0],[11.0,1.5],[11.0,3.0],[21.95,3.0],[21.95,3.3],[22.6,3.3],[22.4,3.54],[22.35,3.84],[22.53,4.13],[22.98,4.65],[23.08,4.86],[23.09,5.1],[22.94,5.4],[22.4,6.05],[22.34,6.26],[22.45,6.53],[23.02,7.21],[23.1,7.51],[23.01,7.81],[22.42,8.52],[22.34,8.8],[22.48,9.07],[22.96,9.61],[23.08,9.86],[23.09,10.06],[22.97,10.36],[22.41,11.03],[22.35,11.3],[22.44,11.51],[22.99,12.17],[23.1,12.47],[23.03,12.77],[22.46,13.46],[22.34,13.76],[22.45,14.03],[22.95,14.61]];
 const T = [[22.97,3.35],[22.86,3.14],[22.34,2.55],[22.24,2.25],[22.36,1.93],[22.92,1.26],[22.99,1.07],[22.98,0.88],[22.1,0.0],[20.1,0.0],[19.1,1.0],[19.1,9.0],[11.5,9.0],[11.0,9.5],[11.0,17.0],[11.5,17.5],[22.1,17.5],[22.26,17.34],[22.26,17.13],[22.34,16.95],[22.85,16.37],[23.0,16.05],[22.92,15.73],[22.37,15.09],[22.25,14.71],[22.38,14.41],[22.89,13.81],[23.0,13.54],[22.94,13.26],[22.32,12.51],[22.24,12.25],[22.35,11.95],[22.86,11.35],[22.99,11.07],[22.95,10.8],[22.36,10.07],[22.24,9.76],[22.32,9.48],[22.84,8.89],[22.99,8.59],[22.9,8.2],[22.37,7.58],[22.25,7.28],[22.35,6.94],[22.81,6.43],[22.99,6.08],[22.92,5.74],[22.38,5.09],[22.24,4.73],[22.35,4.44],[22.96,3.69],[22.97,3.35]];
 // hemispherical AVC rubber suspension (shell), local z = 0 at its base
-function rubberProfile() {
-  const p = [[16.0,0.0],[18.6,0.0],[18.9,0.3],[18.9,1.7],[18.5,2.0],[14.0,3.5],[11.2,6.5],[10.7,8.5],[10.7,17.4]];
-  for (let i = 1; i <= 10; i++) { const a = i / 10 * Math.PI / 2; const r = 10.7 * Math.cos(a), z = 17.4 + 3.8 * Math.sin(a); if (r >= 2.6) p.push([r, z]); }
-  const zt = 17.4 + 3.8 * Math.sqrt(1 - (2.6 / 10.7) ** 2);
-  p.push([2.6, zt], [2.6, 18.2]);
-  for (let i = 0; i <= 6; i++) { const a = i / 6 * Math.PI / 2; p.push([2.6 + (8.2 - 2.6) * Math.sin(a), 18.2 - 1.2 * (1 - Math.cos(a))]); }
-  p.push([8.2, 8.5], [8.7, 6.3], [11.4, 3.6], [16.0, 2.2], [16.0, 0.0]);
-  return p;
-}
+// real AVC rubber suspension profile (from GUMA_VICTOR.step), local z = 0 at its base
+const R_PROF = [[7.665, 12.591], [7.638, 12.632], [7.619, 12.677], [7.609, 12.725], [7.608, 18.5], [5.482, 18.5], [5.482, 18.75], [5.482, 19.0], [2.988, 19.0], [2.988, 8.0], [3.655, 7.333], [4.322, 6.667], [4.982, 6.0], [5.174, 6.0], [5.38, 6.0], [6.387, 7.0], [7.387, 8.0], [7.465, 8.094], [7.552, 8.18], [7.647, 8.258], [7.749, 8.325], [7.858, 8.382], [7.971, 8.429], [8.088, 8.464], [8.208, 8.487], [8.33, 8.499], [8.453, 8.498], [8.574, 8.486], [8.694, 8.462], [8.811, 8.426], [8.924, 8.379], [9.032, 8.321], [9.134, 8.253], [9.228, 8.175], [9.315, 8.088], [9.392, 7.993], [9.46, 7.892], [9.518, 7.784], [9.564, 7.67], [9.6, 7.553], [10.229, 5.035], [10.859, 2.518], [11.47, 0.0], [18.988, 0.0], [18.871, 1.634], [18.601, 3.25], [18.181, 4.834], [17.616, 6.371], [16.908, 7.849], [16.066, 9.254], [15.096, 10.574], [14.007, 11.798], [12.808, 12.914], [11.51, 13.914], [10.124, 14.788], [10.036, 14.832], [9.943, 14.868], [9.847, 14.894], [9.749, 14.911], [9.65, 14.918], [9.55, 14.914], [9.452, 14.902], [9.355, 14.879], [9.261, 14.847], [9.171, 14.805], [9.085, 14.755], [9.004, 14.697], [8.93, 14.631], [8.863, 14.558], [8.803, 14.478], [8.751, 14.393], [8.709, 14.304], [8.675, 14.21], [8.64, 14.114], [8.368, 12.701], [8.354, 12.654], [8.331, 12.611], [8.3, 12.573], [8.262, 12.542], [8.218, 12.519], [8.172, 12.505], [8.123, 12.5], [7.848, 12.5], [7.809, 12.505], [7.762, 12.519], [7.719, 12.542], [7.681, 12.573], [7.665, 12.591]];
+function rubberProfile() { return R_PROF; }
 const R = rubberProfile();
+const R_TOP = Math.max(...R.map(q => q[1])), R_BOSS = 6.0; // screw head bears on the inner shelf
+// tray mounted cup-up: flip the scanned profile
+const T_UP = T.map(([r, z]) => [r, 17.5 - z]).reverse();
 const PAD = [[0.01,0],[22.2,0],[22.4,0.2],[22.4,2.8],[22.2,3.0],[0.01,3.0],[0.01,0]];
 
 // assembled placement (world y in mm, body bottom = 0)
-const POS = { pad: -2.0, body: 0, tray: 3.0, rubber: 3.0, screw: 21.2 /* head bearing face under the rubber boss */ };
+const POS = { pad: -2.0, body: 0, tray: 3.0, rubber: 3.0 + 8.5, screw: 3.0 + 8.5 + R_BOSS /* head bearing face under the rubber boss */ };
 
 // ---------- geometry helpers ----------
 function splitRuns(pts, deg = 32) {
@@ -121,7 +124,9 @@ function woodTex(size = 1024) {
 }
 
 // ---------- scene ----------
-export function createStudio(canvas, W, H) {
+let M_RASTER_FLOOR = false;
+export function createStudio(canvas, W, H, opt = {}) {
+  const RASTER = !!opt.raster;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(1); renderer.setSize(W, H, false);
   renderer.toneMapping = THREE.AgXToneMapping; renderer.toneMappingExposure = 1.2;
@@ -131,6 +136,19 @@ export function createStudio(canvas, W, H) {
   const env = new GradientEquirectTexture(256);
   env.topColor.set(0x1b1d22); env.bottomColor.set(0x010101); env.exponent = 1.6; env.update();
   scene.environment = env; scene.background = new THREE.Color(0x050506); scene.environmentIntensity = 1.0;
+  if (RASTER) {
+    M_RASTER_FLOOR = true;
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    RectAreaLightUniformsLib.init();
+    const es = new THREE.Scene(); es.background = new THREE.Color(0x07080a);
+    const panel = (w, h, c, k, pos) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(k), side: THREE.DoubleSide })); m.position.set(...pos); m.lookAt(0, 0, 0); es.add(m); };
+    panel(6, 4.5, 0xfff1e4, 2.2, [-5, 6, 4]);   // key softbox
+    panel(9, 1.2, 0x9fe9ee, 1.8, [4, 5, -6]);   // rim strip (turquoise tint)
+    panel(10, 10, 0xffffff, 0.5, [0, 10, 1]); // top
+    panel(30, 4, 0x2a2c31, 1, [0, 1.5, -12]); // backdrop glow
+    const fl = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshBasicMaterial({ color: 0x0b0c0e })); fl.rotation.x = -Math.PI / 2; fl.position.y = -1; es.add(fl);
+    const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(es, 0.02).texture; scene.environmentIntensity = 0.45;
+  }
 
   const camera = new THREE.PerspectiveCamera(28, W / H, 5, 6000);
 
@@ -149,6 +167,7 @@ export function createStudio(canvas, W, H) {
     wood: new THREE.MeshPhysicalMaterial({ map: woodTex(), roughness: 0.38, clearcoat: 0.5, clearcoatRoughness: 0.25, metalness: 0 }),
     glow: new THREE.MeshBasicMaterial({ color: 0x000000 }),
   };
+  if (RASTER) { M.floor.roughnessMap = null; M.floor.roughness = 0.62; M.floor.color.set(0x0b0c0e); M.plastic.color.set(0x0d0d0f); }
   M.glow = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: ACC, emissiveIntensity: 6 });
 
   // lights
@@ -156,10 +175,18 @@ export function createStudio(canvas, W, H) {
   const rim = new THREE.RectAreaLight(0x9fe9ee, 9, 260, 60); rim.position.set(140, 300, -320); rim.lookAt(0, 20, 0);
   const top = new THREE.RectAreaLight(0xffffff, 5, 500, 500); top.position.set(0, 600, 60); top.lookAt(0, 0, 0);
   scene.add(key, rim, top);
+  if (RASTER) {
+    const sp = new THREE.SpotLight(0xfff1e4, 1.5e5, 0, 0.42, 0.9, 2); sp.position.set(-260, 330, 200); sp.target.position.set(0, 0, 0);
+    sp.castShadow = true; sp.shadow.mapSize.set(2048, 2048); sp.shadow.radius = 6; sp.shadow.bias = -0.0004; sp.shadow.camera.near = 150; sp.shadow.camera.far = 900;
+    scene.add(sp, sp.target);
+    const sp2 = new THREE.SpotLight(0xffffff, 0.6e5, 0, 0.5, 1, 2); sp2.position.set(40, 520, 120); sp2.castShadow = true; sp2.shadow.mapSize.set(1024, 1024); sp2.shadow.radius = 12; sp2.shadow.bias = -0.0004;
+    scene.add(sp2, sp2.target);
+    scene.background = new THREE.Color(0x0b0c0f); key.intensity = 2.2; rim.intensity = 3.0; top.intensity = 0.6; renderer.toneMappingExposure = 1.45;
+  }
   const back = new THREE.Mesh(new THREE.PlaneGeometry(6000, 3000), new THREE.MeshPhysicalMaterial({ color: 0x15161a, roughness: 0.95 }));
   back.position.set(0, 1400, -1500); scene.add(back);
 
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), M.floor); floor.rotation.x = -Math.PI / 2; floor.position.y = POS.pad;
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), M.floor); floor.receiveShadow = true; floor.rotation.x = -Math.PI / 2; floor.position.y = POS.pad;
   scene.add(floor);
 
   // parts factory
@@ -174,7 +201,7 @@ export function createStudio(canvas, W, H) {
     const P = {};
     P.pad = add('pad', lathe(PAD, 128, phi0, phiL), M.foam, POS.pad, M.foam, caps(PAD));
     P.body = add('body', lathe(K, 180, phi0, phiL), M.plastic, POS.body, M.plasticCut, caps(K));
-    P.tray = add('tray', lathe(T, 180, phi0, phiL), M.plastic, POS.tray, M.trayCut, caps(T).translate(-0.06, 0, 0));
+    P.tray = add('tray', lathe(T_UP, 180, phi0, phiL), M.plastic, POS.tray, M.trayCut, caps(T_UP).translate(-0.06, 0, 0));
     P.rubber = add('rubber', lathe(R, 160, phi0, phiL), M.rubber, POS.rubber, M.rubberCut, caps(R));
     P.screw = makeScrew(opts.screw || 'wood'); P.screw.position.y = POS.screw; g.add(P.screw);
     g.userData.parts = P; return g;
@@ -196,10 +223,21 @@ export function createStudio(canvas, W, H) {
   function ring(radius, tube = 0.45) { const m = new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 10, 220), M.glow); m.rotation.x = Math.PI / 2; return m; }
   function plinth() { const m = new THREE.Mesh(new THREE.BoxGeometry(420, 46, 330), M.wood); return m; }
 
-  const pt = new WebGLPathTracer(renderer);
-  pt.renderDelay = 0; pt.fadeDuration = 0; pt.minSamples = 0; pt.dynamicLowRes = false; pt.rasterizeScene = false;
-  pt.bounces = 6; pt.filterGlossyFactor = 0.4; pt.tiles.set(2, 2);
-  pt.setScene(scene, camera);
+  let pt = null, composer = null;
+  if (!RASTER) {
+    pt = new WebGLPathTracer(renderer);
+    pt.renderDelay = 0; pt.fadeDuration = 0; pt.minSamples = 0; pt.dynamicLowRes = false; pt.rasterizeScene = false;
+    pt.bounces = 6; pt.filterGlossyFactor = 0.4; pt.tiles.set(2, 2);
+    pt.setScene(scene, camera);
+  } else {
+    const rt = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, samples: 4 });
+    composer = new EffectComposer(renderer, rt);
+    composer.addPass(new RenderPass(scene, camera));
+    const ao = new GTAOPass(scene, camera, W, H); ao.updateGtaoMaterial({ radius: 5, distanceExponent: 1.5, thickness: 2, scale: 1.2, samples: 12 }); ao.blendIntensity = 0.85; composer.addPass(ao);
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 0.75, 0.55, 2.0));
+    composer.addPass(new OutputPass());
+  }
+  const shadowAll = o => o.traverse(c => { if (c.isMesh && c.material !== M.glow) { c.castShadow = true; c.receiveShadow = true; } });
 
-  return { THREE, renderer, scene, camera, pt, M, ACC, foot, makeScrew, ring, plinth, floor, lights: { key, rim, top }, POS };
+  return { R_TOP_WORLD: 3.0 + 8.5 + R_TOP, THREE, renderer, scene, camera, pt, composer, RASTER, shadowAll, M, ACC, foot, makeScrew, ring, plinth, floor, lights: { key, rim, top }, POS };
 }
