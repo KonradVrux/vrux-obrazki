@@ -66,10 +66,10 @@ export async function init(W = 1920, H = 1080, opt = {}) {
       },
       update(t) {
         this.rings.forEach(r => { scene.remove(r); r.geometry.dispose(); r.material.dispose(); }); this.rings = [];
-        for (let i = 0; i < 4; i++) {
-          const ph = ((t - 0.4) / 2.4 - i * 0.25); if (ph < 0) continue; const f = ph % 1;
-          const r = S.ring(lerp(32, 260, f), 0.55); r.position.y = S.POS.pad + 0.3;
-          r.material = S.M.glow.clone(); r.material.emissiveIntensity = 7 * Math.pow(1 - f, 1.6);
+        for (let i = 0; i < 5; i++) {
+          const ph = ((t - 0.3) / 1.3 - i * 0.2); if (ph < 0) continue; const f = ph % 1;
+          const r = S.ring(lerp(32, 240, f), 0.28); r.position.y = S.POS.pad + 0.2;
+          r.material = S.M.glow.clone(); r.material.emissiveIntensity = (S.RASTER ? 2.6 : 2.2) * Math.pow(1 - f, 2.0) * Math.min(1, f * 8);
           scene.add(r); this.rings.push(r);
         }
         setCam(lerp(-28, -10, easeIO(t / this.dur)), lerp(13, 10, t / this.dur), lerp(300, 255, easeIO(t / this.dur)), 15, 18, 15);
