@@ -60,6 +60,35 @@ export async function init(W = 1920, H = 1080, opt = {}) {
     section: { dur: 6.0, setup() { this.f = add(S.foot({ cut: true })); },
       update(t) { const u = t / this.dur; setCam(lerp(-72, -88, easeIO(u)), lerp(9, 5, u), lerp(150, 122, easeIO(u)), 0, 16, 0); return t === 0; },
       anchors() { return { h0: new THREE.Vector3(0, 0, -30.5), h20: new THREE.Vector3(0, 20, -30.5), rubber: new THREE.Vector3(0, 23, -14), screw: new THREE.Vector3(0, 34, 0), thread: new THREE.Vector3(0, 12, -22.7), pad: new THREE.Vector3(0, -1, -16) }; } },
+    // height adjustment: turning the body screws the threaded tray (with the AVC suspension and screw) up – up to 8 mm
+    adjust: { dur: 7.0, LIFT: 8.0, setup() {
+        this.f = add(S.foot({ cut: true }));
+        // turning indicator: dashed glowing ring around the body
+        this.ind = new THREE.Group();
+        for (let k = 0; k < 6; k++) {
+          const a = new THREE.Mesh(new THREE.TorusGeometry(31.5, 0.32, 10, 60, Math.PI / 4.2), S.M.glow);
+          a.rotation.x = Math.PI / 2; a.rotation.z = k * Math.PI / 3; this.ind.add(a);
+        }
+        this.ind.position.y = 10; add(this.ind);
+      },
+      lift(t) { // 0 → 8 mm, short hold, back to 4 mm
+        const up = easeIO((t - 0.9) / 2.8), down = easeIO((t - 4.2) / 1.6);
+        return this.LIFT * up - (this.LIFT - 4.0) * down;
+      },
+      update(t) {
+        this._t = t; const P = this.f.userData.parts, L = this.lift(t);
+        for (const n of ['tray', 'rubber', 'screw']) P[n].position.y = S.POS[n] + L;
+        S.setBodyLift(this.f, L);
+        this.ind.rotation.y = -(L / 2.5) * Math.PI * 2; // ~2.5 mm per turn
+        const g = Math.min(1, Math.max(0, (t - 0.5) / 0.5)) * Math.min(1, Math.max(0, (this.dur - 0.3 - t) / 0.6));
+        S.M.glow.emissiveIntensity = (S.RASTER ? 2.4 : 2.0) * g; this.ind.visible = g > 0.02;
+        const u = t / this.dur; setCam(lerp(-74, -86, easeIO(u)), lerp(10, 7, u), lerp(170, 152, easeIO(u)), 0, 22, 0);
+        return true;
+      },
+      teardown() { S.M.glow.emissiveIntensity = 6; },
+      anchors() { const L = this.lift.call(this, this._t || 0); return {
+        top0: new THREE.Vector3(0, S.R_TOP_WORLD, -34), top8: new THREE.Vector3(0, S.R_TOP_WORLD + this.LIFT, -34),
+        top: new THREE.Vector3(0, S.R_TOP_WORLD + L, -34), rub: new THREE.Vector3(0, S.R_TOP_WORLD + L, -9) }; } },
     damping: { dur: 6.0, setup() {
         this.f = add(S.foot()); this.p = add(S.plinth()); this.p.position.set(185, S.R_TOP_WORLD + 23, -150);
         this.rings = [];
@@ -81,7 +110,7 @@ export async function init(W = 1920, H = 1080, opt = {}) {
         const xy = [[-48, -40], [48, -40], [-48, 46], [48, 46]];
         this.fs = xy.map(([x, z], i) => { const f = add(S.foot()); f.position.set(x, 0, z); f.rotation.y = i * 0.7; return f; });
       },
-      update(t) { const u = t / this.dur; setCam(lerp(-30, -14, easeIO(u)), lerp(34, 28, u), lerp(400, 360, easeIO(u)), 0, 6, 4); return t === 0; },
+      update(t) { const u = t / this.dur; setCam(lerp(-30, -14, easeIO(u)), lerp(34, 28, u), lerp(420, 380, easeIO(u)), -78, 6, 4); return t === 0; },
       anchors() { return {}; } },
   };
 

@@ -22,6 +22,23 @@ const R_TOP = Math.max(...R.map(q => q[1])), R_BOSS = 6.0; // screw head bears o
 const T_UP = T.map(([r, z]) => [r, 17.5 - z]).reverse();
 const PAD = [[0.01,0],[22.2,0],[22.4,0.2],[22.4,2.8],[22.2,3.0],[0.01,3.0],[0.01,0]];
 
+// body thread as seen in the section while the body turns: the helix appears to travel axially by
+// the same amount the tray rises, so the cut threads stay meshed (rings stand in for the helix)
+const PITCH = 2.48, THR_Z0 = 6.26, THR_A = 3.84, THR_B = 18.72, K_SPLIT = 14.61;
+const THR_PER = K.filter(p => p[1] >= THR_Z0 && p[1] < THR_Z0 + PITCH && p[0] < 23.2).sort((a, b) => a[1] - b[1]);
+function thrR(z) {
+  let u = ((z - THR_Z0) % PITCH + PITCH) % PITCH; const P = THR_PER.map(p => [p[0], p[1] - THR_Z0]); P.push([P[0][0], PITCH]);
+  for (let i = 0; i < P.length - 1; i++) if (u >= P[i][1] && u <= P[i + 1][1]) { const k = (u - P[i][1]) / (P[i + 1][1] - P[i][1]); return P[i][0] + (P[i + 1][0] - P[i][0]) * k; }
+  return P[0][0];
+}
+function bodyProfile(L = 0) {
+  if (!L) return K;
+  const gen = (a, b) => { const o = []; const n = Math.max(2, Math.round((b - a) / 0.06)); for (let i = 0; i <= n; i++) { const z = a + (b - a) * i / n; o.push([thrR(z - L), z]); } return o; };
+  const iTop = K.findIndex(p => p[0] === 22.4 && p[1] === 18.95), iBot = K.findIndex(p => p[0] === 22.35 && p[1] === 3.84);
+  const out = [...gen(K_SPLIT, THR_B), ...K.slice(iTop, iBot), ...gen(THR_A, K_SPLIT)];
+  out[out.length - 1] = out[0].slice(); return out;
+}
+
 // assembled placement (world y in mm, body bottom = 0)
 const POS = { pad: -2.0, body: 0, tray: 3.0, rubber: 3.0 + 8.5, screw: 3.0 + 8.5 + R_BOSS /* head bearing face under the rubber boss */ };
 
@@ -148,11 +165,14 @@ function diamondNormal(size = 512, cells = 24) {
     x.putImageData(im, 0, 0);
   });
 }
+// satin floor: roughness multiplier ~0.9 with fine, low-contrast grain (no glossy blotches that mirror the parts)
 function floorRough(size = 1024) {
   return canvasTex(size, (x, s) => {
-    x.fillStyle = '#7a7a7a'; x.fillRect(0, 0, s, s);
-    for (let i = 0; i < 9000; i++) { const g = 90 + Math.random() * 90; x.fillStyle = `rgba(${g},${g},${g},0.25)`; const r = Math.random() * 6 + 1; x.beginPath(); x.arc(Math.random() * s, Math.random() * s, r, 0, 7); x.fill(); }
-  }, 6);
+    const im = x.createImageData(s, s);
+    for (let i = 0; i < s * s; i++) { const g = 222 + (Math.random() - 0.5) * 34; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = g; im.data[i * 4 + 3] = 255; }
+    x.putImageData(im, 0, 0);
+    x.filter = 'blur(1px)'; x.drawImage(x.canvas, 0, 0); x.filter = 'none';
+  }, 10);
 }
 function woodTex(size = 1024) {
   const c = document.createElement('canvas'); c.width = c.height = size; const x = c.getContext('2d');
@@ -201,7 +221,7 @@ export function createStudio(canvas, W, H, opt = {}) {
     zinc: new THREE.MeshPhysicalMaterial({ color: 0xd8d4c8, roughness: 0.22, metalness: 1, side: THREE.DoubleSide }),
     zincDark: new THREE.MeshPhysicalMaterial({ color: 0x3a3832, roughness: 0.4, metalness: 1, side: THREE.DoubleSide }),
     blackOx: new THREE.MeshPhysicalMaterial({ color: 0x1e1f22, roughness: 0.32, metalness: 1, side: THREE.DoubleSide }),
-    floor: new THREE.MeshPhysicalMaterial({ color: 0x17181b, roughness: 0.55, roughnessMap: floorRough(), metalness: 0 }),
+    floor: new THREE.MeshPhysicalMaterial({ color: opt.floorColor ?? 0x0e0f11, roughness: opt.floorRough ?? 0.6, roughnessMap: floorRough(), metalness: 0, specularIntensity: 0.7 }),
     wood: new THREE.MeshPhysicalMaterial({ map: woodTex(), roughness: 0.38, clearcoat: 0.5, clearcoatRoughness: 0.25, metalness: 0 }),
     glow: new THREE.MeshBasicMaterial({ color: 0x000000 }),
   };
@@ -255,6 +275,12 @@ export function createStudio(canvas, W, H, opt = {}) {
     }
     grp.userData.kind = kind; return grp;
   }
+  // re-shape the body of a cut foot for a given tray lift (keeps the section threads meshed)
+  function setBodyLift(footGroup, L) {
+    const b = footGroup.userData.parts.body, prof = bodyProfile(L);
+    const [m, c] = b.children; m.geometry.dispose(); m.geometry = lathe(prof, 180, 0, Math.PI);
+    if (c) { c.geometry.dispose(); c.geometry = caps(prof); }
+  }
   function ring(radius, tube = 0.45) { const m = new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 10, 220), M.glow); m.rotation.x = Math.PI / 2; return m; }
   function plinth() { const m = new THREE.Mesh(new THREE.BoxGeometry(420, 46, 330), M.wood); return m; }
 
@@ -274,5 +300,5 @@ export function createStudio(canvas, W, H, opt = {}) {
   }
   const shadowAll = o => o.traverse(c => { if (c.isMesh && c.material !== M.glow) { c.castShadow = true; c.receiveShadow = true; } });
 
-  return { R_TOP_WORLD: 3.0 + 8.5 + R_TOP, THREE, renderer, scene, camera, pt, composer, RASTER, shadowAll, M, ACC, foot, makeScrew, ring, plinth, floor, lights: { key, rim, top }, POS };
+  return { R_TOP_WORLD: 3.0 + 8.5 + R_TOP, THREE, renderer, scene, camera, pt, composer, RASTER, shadowAll, M, ACC, foot, makeScrew, setBodyLift, ring, plinth, floor, lights: { key, rim, top }, POS };
 }

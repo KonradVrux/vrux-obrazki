@@ -1,0 +1,230 @@
+{
+ "pl": {
+  "hero": {
+   "k": "Nóżka gramofonowa",
+   "t": "AVC A56\nLow Profile",
+   "s": "Niska nóżka antywibracyjna\nz zawieszeniem AVC – 22 mm"
+  },
+  "explode": {
+   "k": "01 — Budowa",
+   "t": "Pięć elementów na jednej osi",
+   "s": "Korpus, tacka, zawieszenie AVC,\nwkręt i podkładka",
+   "lab": {
+    "tray": [
+     "Tacka gwintowana",
+     "wkręcana w korpus"
+    ],
+    "rubber": [
+     "Półsferyczne gumowe zawieszenie AVC",
+     "tłumi drgania"
+    ],
+    "screw": [
+     "Wkręt mocujący",
+     "przechodzi przez zawieszenie"
+    ],
+    "body": [
+     "Korpus",
+     "wytrzymały polimer techniczny"
+    ],
+    "pad": [
+     "Podkładka ze spienionej gumy",
+     "antypoślizgowy wzór"
+    ]
+   }
+  },
+  "mount": {
+   "k": "02 — Montaż",
+   "t": "Wkręt do drewna\nlub śruba metryczna",
+   "s": "Mocowanie jednym wkrętem\nprzez środek zawieszenia AVC",
+   "lab": {
+    "wood": [
+     "Wkręt do drewna",
+     "3–6 mm"
+    ],
+    "metric": [
+     "Śruba",
+     "M3–M6"
+    ]
+   }
+  },
+  "section": {
+   "k": "03 — Przekrój",
+   "t": "Wysokość 22 mm",
+   "s": "Zawieszenie AVC zamknięte\nw niskim korpusie",
+   "lab": {
+    "rubber": [
+     "Zawieszenie AVC"
+    ],
+    "pad": [
+     "Podkładka ze spienionej gumy"
+    ]
+   }
+  },
+  "damping": {
+   "k": "05 — Tłumienie",
+   "t": "Zawieszenie AVC tłumi\ndrgania z podłoża",
+   "s": "Mniej wibracji dociera do igły i talerza"
+  },
+  "set": {
+   "t": "AVC A56 Low Profile · komplet 4 sztuk",
+   "s": "vruxworks.com"
+  },
+  "adjust": {
+   "k": "04 — Regulacja",
+   "t": "Obróć korpus,\nby wypoziomować gramofon",
+   "s": "Regulacja wysokości do 8 mm"
+  }
+ },
+ "en": {
+  "hero": {
+   "k": "Turntable foot",
+   "t": "AVC A56\nLow Profile",
+   "s": "Low anti-vibration foot\nwith AVC suspension – 22 mm"
+  },
+  "explode": {
+   "k": "01 — Construction",
+   "t": "Five parts on one axis",
+   "s": "Body, tray, AVC suspension,\nscrew and pad",
+   "lab": {
+    "tray": [
+     "Threaded tray",
+     "screws into the body"
+    ],
+    "rubber": [
+     "Hemispherical rubber AVC suspension",
+     "damps vibration"
+    ],
+    "screw": [
+     "Mounting screw",
+     "passes through the suspension"
+    ],
+    "body": [
+     "Body",
+     "durable technical polymer"
+    ],
+    "pad": [
+     "Foam rubber pad",
+     "anti-slip texture"
+    ]
+   }
+  },
+  "mount": {
+   "k": "02 — Mounting",
+   "t": "Wood screw\nor metric screw",
+   "s": "Fixed with a single screw through\nthe centre of the AVC suspension",
+   "lab": {
+    "wood": [
+     "Wood screw",
+     "3–6 mm"
+    ],
+    "metric": [
+     "Screw",
+     "M3–M6"
+    ]
+   }
+  },
+  "section": {
+   "k": "03 — Cross-section",
+   "t": "Height 22 mm",
+   "s": "AVC suspension housed\nin a low body",
+   "lab": {
+    "rubber": [
+     "AVC suspension"
+    ],
+    "pad": [
+     "Foam rubber pad"
+    ]
+   }
+  },
+  "damping": {
+   "k": "05 — Damping",
+   "t": "The AVC suspension damps\nvibration from the surface",
+   "s": "Less vibration reaches the stylus and platter"
+  },
+  "set": {
+   "t": "AVC A56 Low Profile · set of 4",
+   "s": "vruxworks.com"
+  },
+  "adjust": {
+   "k": "04 — Adjustment",
+   "t": "Turn the body\nto level the turntable",
+   "s": "Height adjustment up to 8 mm"
+  }
+ },
+ "de": {
+  "hero": {
+   "k": "Plattenspielerfuß",
+   "t": "AVC A56\nLow Profile",
+   "s": "Flacher Antivibrationsfuß\nmit AVC-Aufhängung – 22 mm"
+  },
+  "explode": {
+   "k": "01 — Aufbau",
+   "t": "Fünf Teile auf einer Achse",
+   "s": "Gehäuse, Einsatz, AVC-Aufhängung,\nSchraube und Unterlage",
+   "lab": {
+    "tray": [
+     "Gewindeeinsatz",
+     "wird ins Gehäuse geschraubt"
+    ],
+    "rubber": [
+     "Halbkugelförmige AVC-Gummiaufhängung",
+     "dämpft Schwingungen"
+    ],
+    "screw": [
+     "Befestigungsschraube",
+     "führt durch die Aufhängung"
+    ],
+    "body": [
+     "Gehäuse",
+     "robustes technisches Polymer"
+    ],
+    "pad": [
+     "Moosgummi-Unterlage",
+     "rutschfeste Struktur"
+    ]
+   }
+  },
+  "mount": {
+   "k": "02 — Montage",
+   "t": "Holzschraube\noder metrische Schraube",
+   "s": "Befestigung mit einer Schraube durch\ndie Mitte der AVC-Aufhängung",
+   "lab": {
+    "wood": [
+     "Holzschraube",
+     "3–6 mm"
+    ],
+    "metric": [
+     "Schraube",
+     "M3–M6"
+    ]
+   }
+  },
+  "section": {
+   "k": "03 — Schnitt",
+   "t": "Höhe 22 mm",
+   "s": "AVC-Aufhängung in einem\nflachen Gehäuse",
+   "lab": {
+    "rubber": [
+     "AVC-Aufhängung"
+    ],
+    "pad": [
+     "Moosgummi-Unterlage"
+    ]
+   }
+  },
+  "damping": {
+   "k": "05 — Dämpfung",
+   "t": "Die AVC-Aufhängung dämpft\nSchwingungen vom Untergrund",
+   "s": "Weniger Vibrationen erreichen Nadel und Plattenteller"
+  },
+  "set": {
+   "t": "AVC A56 Low Profile · Satz mit 4 Stück",
+   "s": "vruxworks.com"
+  },
+  "adjust": {
+   "k": "04 — Einstellung",
+   "t": "Gehäuse drehen,\num den Plattenspieler auszurichten",
+   "s": "Höhenverstellung bis 8 mm"
+  }
+ }
+}
