@@ -79,11 +79,49 @@ function threadGeo({ rc, h, pitch, L, tip = 0, shank = 0, nth = 72, sharp = true
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
   return g.toNonIndexed();
 }
-function panHead(r = 4.6, h = 2.8) {
-  const p = [[0.001, 0], [r, 0], [r, -h * 0.42]];
-  for (let i = 1; i <= 8; i++) { const a = i / 8 * Math.PI / 2; p.push([r - (r - 0.001) * Math.sin(a) * 1.0, -h * 0.42 - h * 0.58 * Math.sin(a)]); }
-  const g = new THREE.LatheGeometry(p.map(q => new THREE.Vector2(Math.max(q[0], 0.001), q[1])), 96);
-  g.deleteAttribute('uv'); return g.toNonIndexed();
+// pan head: bearing face at y=0, cylindrical rim, domed top towards -y with the drive recess cut in
+// recess(x, z) -> depth (mm) of the drive recess at that point, 0 outside it
+function panHead(r = 4.6, h = 2.8, recess = null) {
+  const side = new THREE.LatheGeometry([[0.001, 0], [r, 0], [r, -h * 0.42]].map(q => new THREE.Vector2(q[0], q[1])), 96);
+  side.deleteAttribute('uv');
+  const NR = 140, NA = 720, pos = [], idx = [];
+  const yTop = (rr) => -h * 0.42 - h * 0.58 * Math.sqrt(Math.max(0, 1 - (rr / r) ** 2));
+  for (let j = 0; j <= NR; j++) {
+    const rr = r * j / NR;
+    for (let i = 0; i < NA; i++) {
+      const a = i / NA * Math.PI * 2, x = rr * Math.cos(a), z = rr * Math.sin(a);
+      const d = recess ? recess(x, z) : 0;
+      pos.push(x, yTop(rr) + d, z);
+    }
+  }
+  for (let j = 0; j < NR; j++) for (let i = 0; i < NA; i++) {
+    const a = j * NA + i, b = j * NA + (i + 1) % NA, c = (j + 1) * NA + i, e = (j + 1) * NA + (i + 1) % NA;
+    idx.push(a, b, c, b, e, c);
+  }
+  const top = new THREE.BufferGeometry(); top.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); top.setIndex(idx);
+  const t = top.toNonIndexed(); t.computeVertexNormals();
+  const s = side.toNonIndexed(); s.computeVertexNormals();
+  return mergeGeometries([s, t]);
+}
+// Phillips recess: two crossed slots, sloping floor, depth dMax at the centre
+function phillips(w = 0.95, L = 2.5, dMax = 1.6) {
+  return (x, z) => {
+    const ax = Math.abs(x), az = Math.abs(z);
+    let rho = -1;
+    if (az <= w / 2 && ax <= L) rho = ax; else if (ax <= w / 2 && az <= L) rho = az;
+    const rc = Math.hypot(x, z); if (rc < w * 0.75) rho = Math.min(rho < 0 ? 9 : rho, rc);
+    return rho < 0 ? 0 : dMax * (1 - 0.6 * rho / L);
+  };
+}
+// hex socket: flat-to-flat s, flat floor with a shallow cone in the middle
+function hexSocket(s = 2.5, dMax = 1.5) {
+  const R = s / 2;
+  return (x, z) => {
+    let inside = true;
+    for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; if (x * Math.cos(a) + z * Math.sin(a) > R) { inside = false; break; } }
+    if (!inside) return 0;
+    const rc = Math.hypot(x, z); return dMax + Math.max(0, 0.4 * (1 - rc / R));
+  };
 }
 
 // ---------- textures ----------
@@ -210,13 +248,10 @@ export function createStudio(canvas, W, H, opt = {}) {
     const grp = new THREE.Group(); grp.name = 'screw';
     if (kind === 'metric') {
       grp.add(new THREE.Mesh(threadGeo({ rc: 2.05, h: 0.45, pitch: 0.8, L: 18, tip: 0.6, shank: 0, sharp: false, nth: 64 }), M.blackOx));
-      const hd = new THREE.Mesh(panHead(4.4, 3.0), M.blackOx); grp.add(hd);
-      const hex = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.6, 6), new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness: 0.6, metalness: 1 }));
-      hex.position.y = -3.0; grp.add(hex);
+      grp.add(new THREE.Mesh(panHead(4.4, 3.0, hexSocket(2.5, 1.5)), M.blackOx));
     } else {
       grp.add(new THREE.Mesh(threadGeo({ rc: 1.65, h: 0.85, pitch: 2.2, L: 24, tip: 5, shank: 1.0, sharp: true, nth: 64 }), M.zinc));
-      grp.add(new THREE.Mesh(panHead(4.6, 2.8), M.zinc));
-      for (const rot of [0, Math.PI / 2]) { const b = new THREE.Mesh(new THREE.BoxGeometry(5.0, 0.9, 0.85), M.zincDark); b.rotation.y = rot; b.position.y = -2.72; grp.add(b); }
+      grp.add(new THREE.Mesh(panHead(4.6, 2.8, phillips(0.95, 2.5, 1.6)), M.zinc));
     }
     grp.userData.kind = kind; return grp;
   }
