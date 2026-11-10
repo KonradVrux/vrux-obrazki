@@ -31,9 +31,9 @@ function thrR(z) {
   for (let i = 0; i < P.length - 1; i++) if (u >= P[i][1] && u <= P[i + 1][1]) { const k = (u - P[i][1]) / (P[i + 1][1] - P[i][1]); return P[i][0] + (P[i + 1][0] - P[i][0]) * k; }
   return P[0][0];
 }
-function bodyProfile(L = 0) {
-  if (!L) return K;
-  const gen = (a, b) => { const o = []; const n = Math.max(2, Math.round((b - a) / 0.06)); for (let i = 0; i <= n; i++) { const z = a + (b - a) * i / n; o.push([thrR(z - L), z]); } return o; };
+function bodyProfile(L = 0, force = false) {
+  if (!L && !force) return K;
+  const gen = (a, b) => { const o = []; const n = Math.max(2, Math.round((b - a) / 0.1)); for (let i = 0; i <= n; i++) { const z = a + (b - a) * i / n; o.push([thrR(z - L), z]); } return o; };
   const iTop = K.findIndex(p => p[0] === 22.4 && p[1] === 18.95), iBot = K.findIndex(p => p[0] === 22.35 && p[1] === 3.84);
   const out = [...gen(K_SPLIT, THR_B), ...K.slice(iTop, iBot), ...gen(THR_A, K_SPLIT)];
   out[out.length - 1] = out[0].slice(); return out;
@@ -276,10 +276,21 @@ export function createStudio(canvas, W, H, opt = {}) {
     grp.userData.kind = kind; return grp;
   }
   // re-shape the body of a cut foot for a given tray lift (keeps the section threads meshed)
+  // updates the existing geometry in place (same vertex count for every lift) so the path tracer
+  // re-bakes the same objects instead of piling up new ones every frame
   function setBodyLift(footGroup, L) {
-    const b = footGroup.userData.parts.body, prof = bodyProfile(L);
-    const [m, c] = b.children; m.geometry.dispose(); m.geometry = lathe(prof, 180, 0, Math.PI);
-    if (c) { c.geometry.dispose(); c.geometry = caps(prof); }
+    const b = footGroup.userData.parts.body, prof = bodyProfile(L, true);
+    const [m, c] = b.children;
+    const put = (mesh, g) => {
+      const a = mesh.geometry.attributes, n = g.attributes;
+      if (a.position.count === n.position.count && a.normal && n.normal) {
+        a.position.array.set(n.position.array); a.position.needsUpdate = true;
+        a.normal.array.set(n.normal.array); a.normal.needsUpdate = true;
+        mesh.geometry.computeBoundingBox(); mesh.geometry.computeBoundingSphere(); g.dispose();
+      } else { mesh.geometry.dispose(); mesh.geometry = g; }
+    };
+    put(m, lathe(prof, 180, 0, Math.PI));
+    if (c) put(c, caps(prof));
   }
   function ring(radius, tube = 0.45) { const m = new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 10, 220), M.glow); m.rotation.x = Math.PI / 2; return m; }
   function plinth() { const m = new THREE.Mesh(new THREE.BoxGeometry(420, 46, 330), M.wood); return m; }
