@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8">
+<script type="importmap">{"imports":{
+"three":"/pkg/node_modules/three/build/three.module.js",
+"three/examples/jsm/":"/pkg/node_modules/three/examples/jsm/",
+"three-mesh-bvh":"/pkg/node_modules/three-mesh-bvh/build/index.module.js",
+"three-gpu-pathtracer":"/pkg/node_modules/three-gpu-pathtracer/build/index.module.js",
+"mp4-muxer":"/pkg/node_modules/mp4-muxer/build/mp4-muxer.mjs"}}</script></head>
+<body style="margin:0;background:#000">
+<script type="module">
+import { initInstr } from '/src/instr.js';
+const q=new URLSearchParams(location.search); window.I = await initInstr(+q.get('w')||1600, +q.get('h')||1200);
+window.ready = true;
+</script></body></html>
