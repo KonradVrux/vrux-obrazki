@@ -4,9 +4,23 @@ import { init } from './film.js';
 
 const D2R = Math.PI / 180;
 
-export async function initInstr(W, H) {
+export async function initInstr(W, H, variant = 'lp') {
   const F = await init(W, H, { raster: true });
   const S = F.S, { scene, camera } = S;
+  let SCREW = 'wood';
+  if (variant === 'mk2') { // A56 MK2: taller body and deeper threaded insert, brass-coloured insert, metric screw
+    const SB = 1.5, ST = 1.6, baseFoot = S.foot;
+    const insertMat = new THREE.MeshStandardMaterial({ color: 0xc29a58, roughness: 0.5, metalness: 0.15 });
+    const POS = { pad: S.POS.pad, body: 0, tray: 3.0, rubber: 20.0 };
+    POS.screw = POS.rubber + 6.0;
+    S.POS = POS; S.R_TOP_WORLD = POS.rubber + 19.0; SCREW = 'metric';
+    S.foot = (o = {}) => {
+      const f = baseFoot({ ...o, screw: o.screw || 'metric' }); const P = f.userData.parts;
+      P.body.scale.y = SB; P.tray.scale.y = ST; P.tray.position.y = POS.tray;
+      P.tray.traverse(c => { if (c.isMesh) c.material = insertMat; });
+      P.rubber.position.y = POS.rubber; P.screw.position.y = POS.screw; return f;
+    };
+  }
 
   // ---- light, print-friendly studio ----
   const BG = 0xffffff;
@@ -102,7 +116,7 @@ export async function initInstr(W, H) {
   const shots = {
     kit() {
       [[-38, -36], [38, -36], [-38, 40], [38, 40]].forEach(([x, z], i) => { const f = add(S.foot()); f.remove(f.userData.parts.screw); f.position.set(x - 30, 0, z); f.rotation.y = i * 0.6; });
-      [-36, -12, 12, 36].forEach((z, i) => { const s = add(S.makeScrew('wood')); s.rotation.set(0, -0.15, Math.PI / 2); s.position.set(70, S.POS.pad + 4.6, z); });
+      [-36, -12, 12, 36].forEach((z, i) => { const s = add(S.makeScrew(SCREW)); s.rotation.set(0, -0.15, Math.PI / 2); s.position.set(70, S.POS.pad + 4.6, z); });
       setCam(-10, 38, 380, -12, 4, 4, 30);
     },
     step1() { // unscrew body completely from the tray

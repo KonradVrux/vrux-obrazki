@@ -8,6 +8,6 @@
 <body style="margin:0;background:#000">
 <script type="module">
 import { initInstr } from '/src/instr.js';
-const q=new URLSearchParams(location.search); window.I = await initInstr(+q.get('w')||1600, +q.get('h')||1200);
+const q=new URLSearchParams(location.search); window.I = await initInstr(+q.get('w')||1600, +q.get('h')||1200, q.get('v')||'lp');
 window.ready = true;
 </script></body></html>
